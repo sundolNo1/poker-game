@@ -25,6 +25,8 @@ const SEAT_POSITIONS = [
 
 export default function GameTable({ gameState, playerId, roomId }) {
   const [copied, setCopied] = useState(false);
+  const [smallBlind, setSmallBlind] = useState(1000);
+  const [bigBlind, setBigBlind] = useState(2000);
 
   const copyRoomId = () => {
     navigator.clipboard.writeText(roomId);
@@ -146,16 +148,47 @@ export default function GameTable({ gameState, playerId, roomId }) {
             ))}
           </div>
           {canStart ? (
-            <button
-              className="bg-green-700 hover:bg-green-600 text-white font-bold px-8 py-2 rounded-lg transition-colors"
-              onClick={() => socket.emit('start-game')}
-            >
-              게임 시작
-            </button>
+            <div>
+              <div className="flex gap-3 justify-center mb-3">
+                <div className="text-left">
+                  <label className="text-gray-400 text-xs block mb-1">스몰 블라인드</label>
+                  <input
+                    type="number"
+                    className="w-28 bg-gray-700 text-white px-3 py-1.5 rounded-lg border border-gray-600 focus:outline-none focus:border-yellow-500 text-center"
+                    value={smallBlind}
+                    onChange={e => {
+                      const v = Math.max(1, Number(e.target.value));
+                      setSmallBlind(v);
+                      setBigBlind(v * 2);
+                    }}
+                  />
+                </div>
+                <div className="text-left">
+                  <label className="text-gray-400 text-xs block mb-1">빅 블라인드</label>
+                  <input
+                    type="number"
+                    className="w-28 bg-gray-700 text-white px-3 py-1.5 rounded-lg border border-gray-600 focus:outline-none focus:border-yellow-500 text-center"
+                    value={bigBlind}
+                    onChange={e => setBigBlind(Math.max(smallBlind, Number(e.target.value)))}
+                  />
+                </div>
+              </div>
+              <button
+                className="bg-green-700 hover:bg-green-600 text-white font-bold px-8 py-2 rounded-lg transition-colors"
+                onClick={() => socket.emit('start-game', { smallBlind, bigBlind })}
+              >
+                게임 시작
+              </button>
+            </div>
           ) : (
-            <p className="text-gray-500 text-sm">
-              {isHost ? '다른 플레이어를 기다리는 중...' : '방장이 게임을 시작하면 시작됩니다'}
-            </p>
+            <div>
+              <p className="text-gray-500 text-sm mb-1">
+                {isHost ? '다른 플레이어를 기다리는 중...' : '방장이 게임을 시작하면 시작됩니다'}
+              </p>
+              {!isHost && gameState.smallBlind && (
+                <p className="text-gray-600 text-xs">블라인드: {gameState.smallBlind?.toLocaleString()} / {gameState.bigBlind?.toLocaleString()}</p>
+              )}
+            </div>
           )}
         </div>
       )}

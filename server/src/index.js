@@ -14,7 +14,7 @@ const io = new Server(server, { cors: { origin: '*' } });
 const rooms = new Map();
 
 function genRoomId() {
-  return Math.random().toString(36).substring(2, 8).toUpperCase();
+  return String(Math.floor(100000 + Math.random() * 900000));
 }
 
 function broadcastState(room) {
@@ -40,20 +40,20 @@ io.on('connection', (socket) => {
   });
 
   socket.on('join-room', ({ roomId, name }) => {
-    const room = rooms.get(roomId.toUpperCase());
+    const room = rooms.get(roomId.trim());
     if (!room) { socket.emit('error', '방을 찾을 수 없습니다'); return; }
     const res = room.addPlayer(socket.id, name);
     if (res.error) { socket.emit('error', res.error); return; }
-    currentRoomId = roomId.toUpperCase();
+    currentRoomId = roomId.trim();
     socket.join(currentRoomId);
     socket.emit('room-joined', { roomId: currentRoomId });
     broadcastState(room);
   });
 
-  socket.on('start-game', () => {
+  socket.on('start-game', ({ smallBlind, bigBlind } = {}) => {
     const room = rooms.get(currentRoomId);
     if (!room) return;
-    const res = room.startGame();
+    const res = room.startGame(smallBlind, bigBlind);
     if (res.error) { socket.emit('error', res.error); return; }
     broadcastState(room);
   });

@@ -12,12 +12,8 @@ export default function BettingControls({ gameState, playerId }) {
 
   if (!isMyTurn || !['pre-flop','flop','turn','river'].includes(gameState.phase)) {
     return (
-      <div className="h-24 flex items-center justify-center text-gray-500 text-sm">
-        {gameState.phase === 'waiting'
-          ? '게임 시작을 기다리는 중...'
-          : gameState.phase === 'showdown'
-          ? ''
-          : '다른 플레이어의 차례입니다'}
+      <div className="h-20 flex items-center justify-center text-gray-500 text-sm">
+        {gameState.phase === 'waiting' ? '게임 시작을 기다리는 중...' : gameState.phase === 'showdown' ? '' : '다른 플레이어의 차례입니다'}
       </div>
     );
   }
@@ -31,27 +27,44 @@ export default function BettingControls({ gameState, playerId }) {
 
   const act = (action, amount) => socket.emit('player-action', { action, amount });
 
+  const pot = gameState.pot;
+  const presets = canRaise ? [
+    { label: '1/4 팟', value: Math.floor(pot / 4) },
+    { label: '1/2 팟', value: Math.floor(pot / 2) },
+    { label: '팟', value: pot },
+    { label: '올인', value: maxRaise },
+  ].filter(p => p.value >= gameState.minRaise && p.value <= maxRaise) : [];
+
   return (
-    <div className="bg-gray-900 border-t border-gray-700 p-4">
+    <div className="bg-gray-900 border-t border-gray-700 p-3">
       {canRaise && (
-        <div className="flex items-center gap-3 mb-3">
-          <span className="text-gray-400 text-sm w-12">레이즈</span>
-          <input
-            type="range"
-            min={gameState.minRaise}
-            max={maxRaise}
-            value={Math.min(raiseAmt, maxRaise)}
-            onChange={e => setRaiseAmt(Number(e.target.value))}
-            className="flex-1 accent-yellow-500"
-          />
-          <input
-            type="number"
-            min={gameState.minRaise}
-            max={maxRaise}
-            value={raiseAmt}
-            onChange={e => setRaiseAmt(Math.max(gameState.minRaise, Math.min(maxRaise, Number(e.target.value))))}
-            className="w-20 bg-gray-700 text-white px-2 py-1 rounded text-sm text-center border border-gray-600"
-          />
+        <div className="mb-3">
+          <div className="flex gap-2 mb-2 flex-wrap justify-center">
+            {presets.map(p => (
+              <button
+                key={p.label}
+                className="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded text-xs transition-colors"
+                onClick={() => setRaiseAmt(Math.min(p.value, maxRaise))}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-2 justify-center">
+            <span className="text-gray-400 text-sm">레이즈 금액</span>
+            <input
+              type="number"
+              className="w-36 bg-gray-700 text-white px-3 py-1.5 rounded-lg border border-gray-600 focus:outline-none focus:border-yellow-500 text-center font-bold"
+              value={raiseAmt}
+              min={gameState.minRaise}
+              max={maxRaise}
+              onChange={e => {
+                const v = Number(e.target.value);
+                setRaiseAmt(Math.max(gameState.minRaise, Math.min(maxRaise, v)));
+              }}
+            />
+            <span className="text-gray-500 text-xs">최소: {gameState.minRaise?.toLocaleString()}</span>
+          </div>
         </div>
       )}
 
@@ -75,7 +88,7 @@ export default function BettingControls({ gameState, playerId }) {
             className="px-5 py-2 bg-blue-700 hover:bg-blue-600 text-white font-bold rounded-lg transition-colors text-sm"
             onClick={() => act('call')}
           >
-            콜 ({callAmount})
+            콜 ({callAmount.toLocaleString()})
           </button>
         )}
 
@@ -84,16 +97,7 @@ export default function BettingControls({ gameState, playerId }) {
             className="px-5 py-2 bg-yellow-600 hover:bg-yellow-500 text-black font-bold rounded-lg transition-colors text-sm"
             onClick={() => act('raise', raiseAmt)}
           >
-            레이즈 (+{raiseAmt})
-          </button>
-        )}
-
-        {!canRaise && player.chips > 0 && !canCheck && callAmount < player.chips && (
-          <button
-            className="px-5 py-2 bg-red-800 hover:bg-red-700 text-white font-bold rounded-lg transition-colors text-sm"
-            onClick={() => act('raise', player.chips)}
-          >
-            올인 ({player.chips})
+            레이즈 (+{raiseAmt.toLocaleString()})
           </button>
         )}
       </div>

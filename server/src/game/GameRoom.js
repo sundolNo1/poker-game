@@ -1,9 +1,9 @@
 const { createDeck, shuffle } = require('./deck');
 const { getBestHand, compareHands } = require('./handEvaluator');
 
-const SMALL_BLIND = 10;
-const BIG_BLIND = 20;
-const STARTING_CHIPS = 1000;
+const DEFAULT_SMALL_BLIND = 1000;
+const DEFAULT_BIG_BLIND = 2000;
+const STARTING_CHIPS = 1000000;
 
 class GameRoom {
   constructor(roomId) {
@@ -15,7 +15,9 @@ class GameRoom {
     this.dealerIndex = -1;
     this.phase = 'waiting';
     this.deck = [];
-    this.minRaise = BIG_BLIND;
+    this.smallBlind = DEFAULT_SMALL_BLIND;
+    this.bigBlind = DEFAULT_BIG_BLIND;
+    this.minRaise = DEFAULT_BIG_BLIND;
     this.actingOrder = [];
     this.winners = [];
   }
@@ -41,9 +43,11 @@ class GameRoom {
     }
   }
 
-  startGame() {
+  startGame(smallBlind, bigBlind) {
     if (this.players.length < 2) return { error: '최소 2명이 필요합니다' };
     if (this.phase !== 'waiting') return { error: '게임이 이미 시작됐습니다' };
+    if (smallBlind) this.smallBlind = Number(smallBlind);
+    if (bigBlind) this.bigBlind = Number(bigBlind);
 
     this.communityCards = [];
     this.pot = 0;
@@ -66,11 +70,11 @@ class GameRoom {
     const n = this.players.length;
     const sbIdx = (this.dealerIndex + 1) % n;
     const bbIdx = (this.dealerIndex + 2) % n;
-    this._postBlind(sbIdx, SMALL_BLIND);
-    this._postBlind(bbIdx, BIG_BLIND);
+    this._postBlind(sbIdx, this.smallBlind);
+    this._postBlind(bbIdx, this.bigBlind);
 
-    this.currentBet = BIG_BLIND;
-    this.minRaise = BIG_BLIND;
+    this.currentBet = this.bigBlind;
+    this.minRaise = this.bigBlind;
     this.phase = 'pre-flop';
     this.actingOrder = this._buildActingOrder('pre-flop');
     this._skipIfNoActors();
@@ -147,7 +151,7 @@ class GameRoom {
         player.chips -= actual;
         player.totalBet += actual;
         this.pot += actual;
-        this.minRaise = Math.max(player.totalBet - this.currentBet, BIG_BLIND);
+        this.minRaise = Math.max(player.totalBet - this.currentBet, this.bigBlind);
         this.currentBet = player.totalBet;
         if (player.chips === 0) player.allIn = true;
         for (const p of this.players) {
@@ -187,7 +191,7 @@ class GameRoom {
   _advancePhase() {
     for (const p of this.players) p.totalBet = 0;
     this.currentBet = 0;
-    this.minRaise = BIG_BLIND;
+    this.minRaise = this.bigBlind;
 
     switch (this.phase) {
       case 'pre-flop':
@@ -245,6 +249,8 @@ class GameRoom {
       pot: this.pot,
       currentBet: this.currentBet,
       minRaise: this.minRaise,
+      smallBlind: this.smallBlind,
+      bigBlind: this.bigBlind,
       communityCards: this.communityCards,
       currentActorId: this.actingOrder[0] || null,
       dealerIndex: this.dealerIndex,

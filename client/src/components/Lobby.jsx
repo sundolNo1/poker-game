@@ -13,7 +13,7 @@ export default function Lobby({ error, onClearError }) {
 
   const handleJoin = () => {
     if (!name.trim() || !joinCode.trim()) return;
-    socket.emit('join-room', { name: name.trim(), roomId: joinCode.trim().toUpperCase() });
+    socket.emit('join-room', { name: name.trim(), roomId: joinCode.trim() });
   };
 
   return (
@@ -69,11 +69,12 @@ export default function Lobby({ error, onClearError }) {
         ) : (
           <div>
             <input
-              className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg border border-gray-600 focus:outline-none focus:border-green-500 mb-3 uppercase tracking-widest"
-              placeholder="방 코드 입력 (예: AB12CD)"
+              className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg border border-gray-600 focus:outline-none focus:border-green-500 mb-3 tracking-widest text-center text-lg"
+              placeholder="방 코드 6자리 숫자"
               value={joinCode}
-              onChange={e => setJoinCode(e.target.value.toUpperCase())}
+              onChange={e => setJoinCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
               onKeyDown={e => e.key === 'Enter' && handleJoin()}
+              inputMode="numeric"
               maxLength={6}
             />
             <button
@@ -86,7 +87,7 @@ export default function Lobby({ error, onClearError }) {
         )}
 
         <div className="mt-4 text-center text-gray-500 text-xs">
-          시작 칩: 1,000 · 블라인드: 10/20 · 최대 6명
+          시작 칩: 1,000,000 · 최대 6명
         </div>
       </div>
     </div>
