@@ -1,0 +1,56 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  margin: 0;
+  background: #1a1a2e;
+  color: white;
+  font-family: 'Segoe UI', sans-serif;
+  min-height: 100vh;
+}
+
+.card {
+  width: 44px;
+  height: 62px;
+  background: white;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 13px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.card-back {
+  background: linear-gradient(135deg, #1e3a8a 25%, #1d4ed8 25%, #1d4ed8 50%, #1e3a8a 50%, #1e3a8a 75%, #1d4ed8 75%);
+  background-size: 8px 8px;
+  color: transparent;
+}
+
+.card-red { color: #dc2626; }
+.card-black { color: #111827; }
+
+.card-community {
+  width: 54px;
+  height: 76px;
+  font-size: 15px;
+}
+
+.poker-table {
+  background: radial-gradient(ellipse at center, #166534 0%, #14532d 60%, #0f4023 100%);
+  border: 10px solid #92400e;
+  box-shadow: inset 0 0 60px rgba(0,0,0,0.4), 0 0 40px rgba(0,0,0,0.6);
+}
+
+.chip-badge {
+  background: rgba(0,0,0,0.6);
+  border: 1px solid rgba(255,255,255,0.2);
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 12px;
+}
