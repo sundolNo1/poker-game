@@ -17,78 +17,181 @@ export default function Lobby({ error, onClearError }) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800">
-      <div className="bg-gray-800 rounded-2xl p-8 w-full max-w-sm shadow-2xl border border-gray-700">
-        <div className="text-center mb-6">
-          <div className="text-5xl mb-2">♠♥♣♦</div>
-          <h1 className="text-2xl font-bold text-white">Texas Hold'em</h1>
-          <p className="text-gray-400 text-sm mt-1">친구들과 함께하는 포커</p>
-        </div>
-
-        {error && (
-          <div className="bg-red-900 border border-red-700 text-red-300 px-4 py-2 rounded-lg mb-4 text-sm flex justify-between">
-            <span>{error}</span>
-            <button onClick={onClearError} className="ml-2 font-bold">✕</button>
+    <div
+      className="min-h-screen flex items-center justify-center relative overflow-hidden"
+      style={{
+        background: 'radial-gradient(ellipse at 30% 40%, rgba(120,40,200,0.12) 0%, transparent 50%), radial-gradient(ellipse at 70% 60%, rgba(200,160,0,0.08) 0%, transparent 40%), linear-gradient(135deg, #050508 0%, #0a0a14 50%, #060609 100%)',
+      }}
+    >
+      {/* Decorative background cards */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        {['♠', '♥', '♦', '♣'].map((s, i) => (
+          <div
+            key={i}
+            className="absolute text-white select-none"
+            style={{
+              fontSize: `${80 + i * 20}px`,
+              opacity: 0.02 + i * 0.01,
+              top: `${10 + i * 20}%`,
+              left: `${i % 2 === 0 ? 5 + i * 5 : 70 - i * 5}%`,
+              transform: `rotate(${-15 + i * 10}deg)`,
+              color: i % 2 === 0 ? '#fff' : '#dc2626',
+            }}
+          >
+            {s}
           </div>
-        )}
+        ))}
+      </div>
 
-        <div className="mb-4">
-          <label className="text-gray-400 text-sm block mb-1">닉네임</label>
-          <input
-            className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg border border-gray-600 focus:outline-none focus:border-green-500"
-            placeholder="닉네임 입력"
-            value={name}
-            onChange={e => setName(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && (tab === 'create' ? handleCreate() : handleJoin())}
-            maxLength={12}
-          />
-        </div>
+      <div
+        className="relative w-full max-w-sm mx-4 rounded-2xl overflow-hidden"
+        style={{
+          background: 'linear-gradient(135deg, rgba(20,20,30,0.95), rgba(12,12,20,0.98))',
+          border: '1px solid rgba(255,215,0,0.15)',
+          boxShadow: '0 0 0 1px rgba(255,255,255,0.04), 0 24px 80px rgba(0,0,0,0.8)',
+        }}
+      >
+        {/* Gold top line */}
+        <div style={{ height: 2, background: 'linear-gradient(to right, transparent, #ffd700, #b8860b, #ffd700, transparent)' }} />
 
-        <div className="flex mb-4 bg-gray-900 rounded-lg p-1">
-          <button
-            className={`flex-1 py-2 rounded-md text-sm font-medium transition-colors ${tab === 'create' ? 'bg-green-700 text-white' : 'text-gray-400 hover:text-white'}`}
-            onClick={() => setTab('create')}
-          >
-            방 만들기
-          </button>
-          <button
-            className={`flex-1 py-2 rounded-md text-sm font-medium transition-colors ${tab === 'join' ? 'bg-green-700 text-white' : 'text-gray-400 hover:text-white'}`}
-            onClick={() => setTab('join')}
-          >
-            방 입장
-          </button>
-        </div>
-
-        {tab === 'create' ? (
-          <button
-            className="w-full bg-green-700 hover:bg-green-600 text-white font-bold py-3 rounded-lg transition-colors"
-            onClick={handleCreate}
-          >
-            방 만들기
-          </button>
-        ) : (
-          <div>
-            <input
-              className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg border border-gray-600 focus:outline-none focus:border-green-500 mb-3 tracking-widest text-center text-lg"
-              placeholder="방 코드 6자리 숫자"
-              value={joinCode}
-              onChange={e => setJoinCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-              onKeyDown={e => e.key === 'Enter' && handleJoin()}
-              inputMode="numeric"
-              maxLength={6}
-            />
-            <button
-              className="w-full bg-blue-700 hover:bg-blue-600 text-white font-bold py-3 rounded-lg transition-colors"
-              onClick={handleJoin}
+        <div className="p-8">
+          {/* Logo */}
+          <div className="text-center mb-8">
+            <div className="flex justify-center gap-3 mb-3">
+              {['♠', '♥', '♦', '♣'].map((s, i) => (
+                <span
+                  key={i}
+                  className="text-3xl"
+                  style={{ color: i % 2 === 0 ? '#e5e7eb' : '#dc2626', textShadow: '0 0 20px currentColor' }}
+                >
+                  {s}
+                </span>
+              ))}
+            </div>
+            <h1
+              className="text-3xl font-bold tracking-wide"
+              style={{
+                fontFamily: "'Playfair Display', serif",
+                background: 'linear-gradient(135deg, #fcd34d, #f59e0b, #fcd34d)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+              }}
             >
-              입장하기
-            </button>
+              Texas Hold'em
+            </h1>
+            <p className="text-gray-500 text-sm mt-1 tracking-widest uppercase">Premium Poker</p>
           </div>
-        )}
 
-        <div className="mt-4 text-center text-gray-500 text-xs">
-          시작 칩: 1,000,000 · 최대 6명
+          {/* Error */}
+          {error && (
+            <div
+              className="rounded-xl px-4 py-3 mb-4 flex justify-between items-center text-sm"
+              style={{ background: 'rgba(127,29,29,0.5)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5' }}
+            >
+              <span>{error}</span>
+              <button onClick={onClearError} className="ml-2 opacity-70 hover:opacity-100">✕</button>
+            </div>
+          )}
+
+          {/* Nickname */}
+          <div className="mb-5">
+            <label className="text-xs font-semibold tracking-widest uppercase text-gray-500 block mb-2">닉네임</label>
+            <input
+              className="w-full px-4 py-3 rounded-xl text-white text-sm font-medium focus:outline-none transition-all"
+              style={{
+                background: 'rgba(255,255,255,0.05)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                caretColor: '#fbbf24',
+              }}
+              onFocus={e => { e.target.style.border = '1px solid rgba(251,191,36,0.5)'; e.target.style.boxShadow = '0 0 0 3px rgba(251,191,36,0.1)'; }}
+              onBlur={e => { e.target.style.border = '1px solid rgba(255,255,255,0.1)'; e.target.style.boxShadow = 'none'; }}
+              placeholder="이름을 입력하세요"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && (tab === 'create' ? handleCreate() : handleJoin())}
+              maxLength={12}
+            />
+          </div>
+
+          {/* Tabs */}
+          <div
+            className="flex mb-5 rounded-xl p-1"
+            style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.06)' }}
+          >
+            {[['create', '방 만들기'], ['join', '방 입장']].map(([key, label]) => (
+              <button
+                key={key}
+                className="flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200"
+                style={tab === key ? {
+                  background: 'linear-gradient(135deg, rgba(251,191,36,0.2), rgba(217,119,6,0.15))',
+                  color: '#fbbf24',
+                  border: '1px solid rgba(251,191,36,0.3)',
+                  boxShadow: '0 0 12px rgba(251,191,36,0.15)',
+                } : {
+                  color: '#6b7280',
+                  border: '1px solid transparent',
+                }}
+                onClick={() => setTab(key)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {tab === 'create' ? (
+            <button
+              className="w-full py-3.5 rounded-xl font-bold text-sm tracking-wide transition-all duration-150 active:scale-95"
+              style={{
+                background: 'linear-gradient(135deg, #166534, #14532d)',
+                border: '1px solid rgba(74,222,128,0.3)',
+                color: '#86efac',
+                boxShadow: '0 4px 20px rgba(22,101,52,0.4)',
+              }}
+              onClick={handleCreate}
+            >
+              방 만들기
+            </button>
+          ) : (
+            <div>
+              <input
+                className="w-full px-4 py-3 rounded-xl text-white text-center text-lg font-bold tracking-[0.3em] focus:outline-none mb-3 transition-all"
+                style={{
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  caretColor: '#fbbf24',
+                }}
+                onFocus={e => { e.target.style.border = '1px solid rgba(251,191,36,0.5)'; e.target.style.boxShadow = '0 0 0 3px rgba(251,191,36,0.1)'; }}
+                onBlur={e => { e.target.style.border = '1px solid rgba(255,255,255,0.1)'; e.target.style.boxShadow = 'none'; }}
+                placeholder="000000"
+                value={joinCode}
+                onChange={e => setJoinCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                onKeyDown={e => e.key === 'Enter' && handleJoin()}
+                inputMode="numeric"
+                maxLength={6}
+              />
+              <button
+                className="w-full py-3.5 rounded-xl font-bold text-sm tracking-wide transition-all duration-150 active:scale-95"
+                style={{
+                  background: 'linear-gradient(135deg, #1d4ed8, #1e3a8a)',
+                  border: '1px solid rgba(96,165,250,0.3)',
+                  color: '#bfdbfe',
+                  boxShadow: '0 4px 20px rgba(29,78,216,0.4)',
+                }}
+                onClick={handleJoin}
+              >
+                입장하기
+              </button>
+            </div>
+          )}
+
+          <p className="text-center text-gray-600 text-xs mt-5 tracking-wide">
+            시작 칩 1,000,000 · 최대 6인
+          </p>
         </div>
+
+        {/* Gold bottom line */}
+        <div style={{ height: 1, background: 'linear-gradient(to right, transparent, rgba(255,215,0,0.2), transparent)' }} />
       </div>
     </div>
   );

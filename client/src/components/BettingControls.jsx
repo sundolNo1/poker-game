@@ -6,17 +6,18 @@ export default function BettingControls({ gameState, playerId }) {
   const player = gameState.players.find(p => p.id === playerId);
   const isMyTurn = gameState.currentActorId === playerId;
 
-  // 문자열로 관리해야 타이핑 중 클램프 버그가 없음
   const [raiseStr, setRaiseStr] = useState(String(gameState.minRaise));
 
   useEffect(() => {
     setRaiseStr(String(gameState.minRaise));
   }, [gameState.minRaise, gameState.currentActorId]);
 
-  if (!isMyTurn || !['pre-flop','flop','turn','river'].includes(gameState.phase)) {
+  if (!isMyTurn || !['pre-flop', 'flop', 'turn', 'river'].includes(gameState.phase)) {
     return (
-      <div className="h-16 flex items-center justify-center text-gray-500 text-sm">
-        {!['waiting','showdown'].includes(gameState.phase) && '다른 플레이어의 차례입니다'}
+      <div className="h-16 flex items-center justify-center">
+        {!['waiting', 'showdown'].includes(gameState.phase) && (
+          <span className="text-gray-500 text-sm italic">다른 플레이어의 차례입니다...</span>
+        )}
       </div>
     );
   }
@@ -28,30 +29,47 @@ export default function BettingControls({ gameState, playerId }) {
   const maxRaise = player.chips - (canCheck ? 0 : callAmount);
   const canRaise = maxRaise >= gameState.minRaise;
 
-  // 실제 전송할 레이즈 금액 (입력값 검증은 버튼 클릭 시에만)
   const parsedRaise = Number(raiseStr) || gameState.minRaise;
   const clampedRaise = Math.max(gameState.minRaise, Math.min(maxRaise, parsedRaise));
+
+  const sliderPct = canRaise && maxRaise > gameState.minRaise
+    ? ((clampedRaise - gameState.minRaise) / (maxRaise - gameState.minRaise)) * 100
+    : 0;
 
   const act = (action, amount) => socket.emit('player-action', { action, amount });
 
   const pot = gameState.pot || 1;
   const presets = canRaise ? [
-    { label: '1/4팟', value: Math.floor(pot / 4) },
-    { label: '1/2팟', value: Math.floor(pot / 2) },
-    { label: '팟',    value: pot },
-    { label: '올인',  value: maxRaise },
+    { label: '¼팟', value: Math.floor(pot / 4) },
+    { label: '½팟', value: Math.floor(pot / 2) },
+    { label: '팟',   value: pot },
+    { label: '올인', value: maxRaise },
   ].filter(p => p.value >= gameState.minRaise && p.value <= maxRaise) : [];
 
   return (
-    <div className="bg-gray-900 border-t border-gray-700 p-3">
+    <div
+      className="border-t px-4 py-3"
+      style={{
+        background: 'linear-gradient(to top, #050508, #0a0a12)',
+        borderColor: 'rgba(255,255,255,0.07)',
+      }}
+    >
       {canRaise && (
-        <div className="mb-3">
+        <div className="mb-3 max-w-lg mx-auto">
+          {/* Preset buttons */}
           {presets.length > 0 && (
             <div className="flex gap-2 mb-2 justify-center flex-wrap">
               {presets.map(p => (
                 <button
                   key={p.label}
-                  className="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded text-xs transition-colors"
+                  className="px-3 py-1 rounded text-xs font-semibold transition-all duration-150"
+                  style={{
+                    background: 'rgba(255,255,255,0.06)',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    color: '#9ca3af',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(251,191,36,0.15)'; e.currentTarget.style.color = '#fbbf24'; e.currentTarget.style.borderColor = 'rgba(251,191,36,0.4)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = '#9ca3af'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
                   onClick={() => setRaiseStr(String(p.value))}
                 >
                   {p.label}
@@ -59,26 +77,49 @@ export default function BettingControls({ gameState, playerId }) {
               ))}
             </div>
           )}
-          <div className="flex items-center gap-2 justify-center">
-            <span className="text-gray-400 text-sm whitespace-nowrap">레이즈 금액</span>
+
+          {/* Slider + Input */}
+          <div className="flex items-center gap-3">
+            <input
+              type="range"
+              className="bet-slider flex-1"
+              style={{ '--pct': `${sliderPct}%` }}
+              min={gameState.minRaise}
+              max={maxRaise}
+              value={clampedRaise}
+              onChange={e => setRaiseStr(e.target.value)}
+            />
             <input
               type="text"
               inputMode="numeric"
-              className="w-36 bg-gray-700 text-white px-3 py-1.5 rounded-lg border border-gray-600 focus:outline-none focus:border-yellow-500 text-center font-bold"
+              className="w-28 text-center text-sm font-bold rounded-lg px-2 py-1.5 focus:outline-none"
+              style={{
+                background: 'rgba(255,255,255,0.07)',
+                border: '1px solid rgba(251,191,36,0.3)',
+                color: '#fcd34d',
+              }}
               value={raiseStr}
               onChange={e => setRaiseStr(e.target.value.replace(/\D/g, ''))}
               onBlur={() => setRaiseStr(String(clampedRaise))}
             />
-            <span className="text-gray-500 text-xs whitespace-nowrap">
-              최소 {gameState.minRaise?.toLocaleString()}
-            </span>
+          </div>
+          <div className="flex justify-between text-xs text-gray-600 mt-1 px-1">
+            <span>최소 {gameState.minRaise?.toLocaleString()}</span>
+            <span>올인 {maxRaise?.toLocaleString()}</span>
           </div>
         </div>
       )}
 
-      <div className="flex gap-2 justify-center">
+      {/* Action buttons */}
+      <div className="flex gap-2 justify-center max-w-lg mx-auto">
         <button
-          className="px-5 py-2 bg-red-700 hover:bg-red-600 text-white font-bold rounded-lg transition-colors text-sm"
+          className="flex-1 py-3 font-bold rounded-xl text-sm transition-all duration-150 active:scale-95"
+          style={{
+            background: 'linear-gradient(135deg, #991b1b, #7f1d1d)',
+            border: '1px solid rgba(239,68,68,0.4)',
+            color: '#fca5a5',
+            boxShadow: '0 4px 12px rgba(153,27,27,0.4)',
+          }}
           onClick={() => { playFold(); act('fold'); }}
         >
           폴드
@@ -86,26 +127,44 @@ export default function BettingControls({ gameState, playerId }) {
 
         {canCheck ? (
           <button
-            className="px-5 py-2 bg-blue-700 hover:bg-blue-600 text-white font-bold rounded-lg transition-colors text-sm"
+            className="flex-1 py-3 font-bold rounded-xl text-sm transition-all duration-150 active:scale-95"
+            style={{
+              background: 'linear-gradient(135deg, #1d4ed8, #1e3a8a)',
+              border: '1px solid rgba(96,165,250,0.4)',
+              color: '#bfdbfe',
+              boxShadow: '0 4px 12px rgba(29,78,216,0.4)',
+            }}
             onClick={() => { playChip(); act('check'); }}
           >
             체크
           </button>
         ) : (
           <button
-            className="px-5 py-2 bg-blue-700 hover:bg-blue-600 text-white font-bold rounded-lg transition-colors text-sm"
+            className="flex-1 py-3 font-bold rounded-xl text-sm transition-all duration-150 active:scale-95"
+            style={{
+              background: 'linear-gradient(135deg, #1d4ed8, #1e3a8a)',
+              border: '1px solid rgba(96,165,250,0.4)',
+              color: '#bfdbfe',
+              boxShadow: '0 4px 12px rgba(29,78,216,0.4)',
+            }}
             onClick={() => { playChip(); act('call'); }}
           >
-            콜 ({callAmount.toLocaleString()})
+            콜 {callAmount.toLocaleString()}
           </button>
         )}
 
         {canRaise && (
           <button
-            className="px-5 py-2 bg-yellow-600 hover:bg-yellow-500 text-black font-bold rounded-lg transition-colors text-sm"
+            className="flex-1 py-3 font-bold rounded-xl text-sm transition-all duration-150 active:scale-95"
+            style={{
+              background: 'linear-gradient(135deg, #d97706, #92400e)',
+              border: '1px solid rgba(251,191,36,0.5)',
+              color: '#fef3c7',
+              boxShadow: '0 4px 12px rgba(217,119,6,0.5)',
+            }}
             onClick={() => { playRaise(); act('raise', clampedRaise); }}
           >
-            레이즈 (+{clampedRaise.toLocaleString()})
+            레이즈 {clampedRaise.toLocaleString()}
           </button>
         )}
       </div>
