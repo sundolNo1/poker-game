@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { socket } from '../socket';
 import Card from './Card';
 import PlayerSeat from './PlayerSeat';
 import BettingControls from './BettingControls';
+import { playCard, playNewRound, playWin } from '../sounds';
 
 const PHASE_LABELS = {
   waiting: '대기 중',
@@ -27,6 +28,30 @@ export default function GameTable({ gameState, playerId, roomId }) {
   const [copied, setCopied] = useState(false);
   const [smallBlind, setSmallBlind] = useState(1000);
   const [bigBlind, setBigBlind] = useState(2000);
+  const prevPhase = useRef(gameState.phase);
+  const prevCommunity = useRef(gameState.communityCards.length);
+  const prevWinners = useRef(gameState.winners.length);
+
+  useEffect(() => {
+    const phase = gameState.phase;
+    const commLen = gameState.communityCards.length;
+
+    if (prevPhase.current === 'waiting' && phase === 'pre-flop') {
+      playNewRound();
+    } else if (commLen > prevCommunity.current) {
+      // 플랍/턴/리버 카드 공개
+      const newCards = commLen - prevCommunity.current;
+      for (let i = 0; i < newCards; i++) setTimeout(() => playCard(), i * 120);
+    }
+
+    if (gameState.winners.length > prevWinners.current) {
+      playWin();
+    }
+
+    prevPhase.current = phase;
+    prevCommunity.current = commLen;
+    prevWinners.current = gameState.winners.length;
+  }, [gameState.phase, gameState.communityCards.length, gameState.winners.length]);
 
   const copyRoomId = () => {
     navigator.clipboard.writeText(roomId);
