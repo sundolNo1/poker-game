@@ -62,12 +62,11 @@ export default function BettingControls({ gameState, playerId }) {
           <div className="flex items-center gap-2 justify-center">
             <span className="text-gray-400 text-sm whitespace-nowrap">레이즈 금액</span>
             <input
-              type="number"
+              type="text"
+              inputMode="numeric"
               className="w-36 bg-gray-700 text-white px-3 py-1.5 rounded-lg border border-gray-600 focus:outline-none focus:border-yellow-500 text-center font-bold"
               value={raiseStr}
-              min={gameState.minRaise}
-              max={maxRaise}
-              onChange={e => setRaiseStr(e.target.value)}
+              onChange={e => setRaiseStr(e.target.value.replace(/\D/g, ''))}
               onBlur={() => setRaiseStr(String(clampedRaise))}
             />
             <span className="text-gray-500 text-xs whitespace-nowrap">
