@@ -69,16 +69,16 @@ export default function GameTable({ gameState, playerId, roomId }) {
     >
       {/* Header */}
       <div
-        className="flex items-center justify-between px-5 py-2.5"
+        className="flex items-center justify-between px-3 sm:px-5 py-2"
         style={{
           background: 'rgba(0,0,0,0.5)',
           borderBottom: '1px solid rgba(255,255,255,0.06)',
           backdropFilter: 'blur(10px)',
         }}
       >
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 min-w-0">
           <span
-            className="font-bold text-sm tracking-wide"
+            className="font-bold tracking-wide whitespace-nowrap text-xs sm:text-sm flex-shrink-0"
             style={{
               fontFamily: "'Playfair Display', serif",
               background: 'linear-gradient(135deg, #fcd34d, #f59e0b)',
@@ -87,36 +87,36 @@ export default function GameTable({ gameState, playerId, roomId }) {
               backgroundClip: 'text',
             }}
           >
-            ♠ Texas Hold'em
+            ♠ Hold'em
           </span>
-          <span style={{ color: 'rgba(255,255,255,0.15)' }}>|</span>
+          <span className="hidden sm:inline flex-shrink-0" style={{ color: 'rgba(255,255,255,0.15)' }}>|</span>
           <span
-            className="text-sm font-semibold px-2.5 py-0.5 rounded-full"
+            className="font-semibold px-2 py-0.5 rounded-full whitespace-nowrap flex-shrink-0"
             style={{
               color: phaseColor,
               background: `${phaseColor}18`,
               border: `1px solid ${phaseColor}40`,
-              fontSize: 12,
+              fontSize: 11,
             }}
           >
             {PHASE_LABELS[gameState.phase]}
           </span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 flex-shrink-0">
           <button
             onClick={copyRoomId}
-            className="text-xs px-3 py-1.5 rounded-lg transition-all duration-150"
+            className="text-xs px-2 sm:px-3 py-1.5 rounded-lg transition-all duration-150"
             style={{
               background: copied ? 'rgba(74,222,128,0.15)' : 'rgba(255,255,255,0.06)',
               border: `1px solid ${copied ? 'rgba(74,222,128,0.4)' : 'rgba(255,255,255,0.1)'}`,
               color: copied ? '#4ade80' : '#9ca3af',
             }}
           >
-            {copied ? '✓ 복사됨' : `# ${roomId}`}
+            {copied ? '✓' : `# ${roomId}`}
           </button>
           {myPlayer && (
             <div
-              className="text-xs px-3 py-1.5 rounded-lg font-semibold"
+              className="text-xs px-2 sm:px-3 py-1.5 rounded-lg font-semibold"
               style={{
                 background: 'rgba(251,191,36,0.1)',
                 border: '1px solid rgba(251,191,36,0.25)',
