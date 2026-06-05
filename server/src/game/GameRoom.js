@@ -4,9 +4,10 @@ const { getBestHand, compareHands } = require('./handEvaluator');
 const DEFAULT_SMALL_BLIND = 1000;
 const DEFAULT_BIG_BLIND = 2000;
 const STARTING_CHIPS = 1000000;
+const ACTION_TIMEOUT_MS = 30000;
 
 class GameRoom {
-  constructor(roomId) {
+  constructor(roomId, onBroadcast) {
     this.roomId = roomId;
     this.players = [];
     this.communityCards = [];
@@ -20,6 +21,9 @@ class GameRoom {
     this.minRaise = DEFAULT_BIG_BLIND;
     this.actingOrder = [];
     this.winners = [];
+    this.onBroadcast = onBroadcast || null;
+    this.actionTimer = null;
+    this.actionDeadline = null;
   }
 
   addPlayer(id, name) {
@@ -78,6 +82,7 @@ class GameRoom {
     this.phase = 'pre-flop';
     this.actingOrder = this._buildActingOrder('pre-flop');
     this._skipIfNoActors();
+    this._startActionTimer();
     return { success: true };
   }
 
@@ -115,6 +120,43 @@ class GameRoom {
     }
   }
 
+  // 레이즈 후 재행동 순서를 레이저 다음부터 시계방향으로 올바르게 재구성
+  _reorderAfterRaise(raiserId) {
+    const n = this.players.length;
+    const raiserIdx = this.players.findIndex(p => p.id === raiserId);
+    for (let i = 1; i < n; i++) {
+      const p = this.players[(raiserIdx + i) % n];
+      if (!p.folded && !p.allIn && !this.actingOrder.includes(p.id)) {
+        this.actingOrder.push(p.id);
+      }
+    }
+  }
+
+  _startActionTimer() {
+    this._clearActionTimer();
+    if (!this.actingOrder.length || ['waiting', 'showdown'].includes(this.phase)) {
+      this.actionDeadline = null;
+      return;
+    }
+    this.actionDeadline = Date.now() + ACTION_TIMEOUT_MS;
+    this.actionTimer = setTimeout(() => {
+      const actorId = this.actingOrder[0];
+      const player = this.players.find(p => p.id === actorId);
+      if (!player || player.folded || player.allIn) return;
+      const canCheck = player.totalBet >= this.currentBet;
+      this.playerAction(actorId, canCheck ? 'check' : 'fold', 0);
+      this.onBroadcast?.();
+    }, ACTION_TIMEOUT_MS);
+  }
+
+  _clearActionTimer() {
+    if (this.actionTimer) {
+      clearTimeout(this.actionTimer);
+      this.actionTimer = null;
+    }
+    this.actionDeadline = null;
+  }
+
   playerAction(playerId, action, amount) {
     if (!['pre-flop','flop','turn','river'].includes(this.phase)) return { error: '지금은 베팅 단계가 아닙니다' };
     if (!this.actingOrder.length || this.actingOrder[0] !== playerId) return { error: '당신의 차례가 아닙니다' };
@@ -122,6 +164,7 @@ class GameRoom {
     const player = this.players.find(p => p.id === playerId);
     if (!player) return { error: '플레이어를 찾을 수 없습니다' };
 
+    this._clearActionTimer();
     this.actingOrder.shift();
 
     switch (action) {
@@ -154,11 +197,8 @@ class GameRoom {
         this.minRaise = Math.max(player.totalBet - this.currentBet, this.bigBlind);
         this.currentBet = player.totalBet;
         if (player.chips === 0) player.allIn = true;
-        for (const p of this.players) {
-          if (p.id !== playerId && !p.folded && !p.allIn && !this.actingOrder.includes(p.id)) {
-            this.actingOrder.push(p.id);
-          }
-        }
+        // 시계방향으로 올바르게 재행동 순서 구성 (BB 옵션 포함)
+        this._reorderAfterRaise(playerId);
         break;
       }
 
@@ -172,12 +212,14 @@ class GameRoom {
     });
 
     this._checkContinuation();
+    this._startActionTimer();
     return { success: true };
   }
 
   _checkContinuation() {
     const nonFolded = this.players.filter(p => !p.folded);
     if (nonFolded.length === 1) {
+      this._clearActionTimer();
       const winner = nonFolded[0];
       winner.chips += this.pot;
       this.winners = [{ playerId: winner.id, playerName: winner.name, hand: null, pot: this.pot }];
@@ -216,6 +258,7 @@ class GameRoom {
   }
 
   _showdown() {
+    this._clearActionTimer();
     this.phase = 'showdown';
     const active = this.players.filter(p => !p.folded);
 
@@ -238,6 +281,7 @@ class GameRoom {
   }
 
   nextRound() {
+    this._clearActionTimer();
     this.players = this.players.filter(p => p.chips > 0);
     this.phase = 'waiting';
   }
@@ -255,6 +299,7 @@ class GameRoom {
       currentActorId: this.actingOrder[0] || null,
       dealerIndex: this.dealerIndex,
       winners: this.winners,
+      actionDeadline: this.actionDeadline,
       players: this.players.map((p, i) => ({
         id: p.id,
         name: p.name,

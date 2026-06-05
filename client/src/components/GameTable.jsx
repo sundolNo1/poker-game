@@ -148,7 +148,7 @@ export default function GameTable({ gameState, playerId, roomId }) {
           {/* Other players */}
           {others.map((player, i) => (
             <div key={player.id} className={`absolute ${SEAT_POSITIONS[i]}`}>
-              <PlayerSeat player={player} isMe={false} phase={gameState.phase} />
+              <PlayerSeat player={player} isMe={false} phase={gameState.phase} actionDeadline={player.isCurrentActor ? gameState.actionDeadline : null} />
             </div>
           ))}
 

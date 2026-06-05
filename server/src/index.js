@@ -29,7 +29,7 @@ io.on('connection', (socket) => {
 
   socket.on('create-room', ({ name }) => {
     const roomId = genRoomId();
-    const room = new GameRoom(roomId);
+    const room = new GameRoom(roomId, () => broadcastState(room));
     rooms.set(roomId, room);
     const res = room.addPlayer(socket.id, name);
     if (res.error) { socket.emit('error', res.error); return; }

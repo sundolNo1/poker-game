@@ -1,4 +1,7 @@
+import { useState, useEffect } from 'react';
 import Card from './Card';
+
+const ACTION_TIMEOUT_SEC = 30;
 
 const AVATAR_COLORS = [
   'linear-gradient(135deg, #7c3aed, #4f46e5)',
@@ -22,7 +25,17 @@ function ChipCount({ chips }) {
   return <span className="text-yellow-300 text-xs">{chips.toLocaleString()}</span>;
 }
 
-export default function PlayerSeat({ player, isMe, phase }) {
+export default function PlayerSeat({ player, isMe, phase, actionDeadline }) {
+  const [timeLeft, setTimeLeft] = useState(null);
+
+  useEffect(() => {
+    if (!actionDeadline) { setTimeLeft(null); return; }
+    const update = () => setTimeLeft(Math.max(0, Math.ceil((actionDeadline - Date.now()) / 1000)));
+    update();
+    const interval = setInterval(update, 250);
+    return () => clearInterval(interval);
+  }, [actionDeadline]);
+
   if (!player) return <div className="w-28 h-24" />;
 
   const isActive = player.isCurrentActor;
@@ -54,12 +67,33 @@ export default function PlayerSeat({ player, isMe, phase }) {
       {/* Player info card */}
       <div className={seatClass}>
         <div className="flex items-center gap-2 justify-center">
-          {/* Avatar */}
-          <div
-            className="player-avatar"
-            style={{ background: getAvatarColor(player.name) }}
-          >
-            {player.name.slice(0, 1).toUpperCase()}
+          {/* Avatar with timer ring */}
+          <div className="relative">
+            {timeLeft !== null && (
+              <svg
+                className="absolute -inset-1"
+                width="36" height="36"
+                viewBox="0 0 36 36"
+                style={{ transform: 'rotate(-90deg)' }}
+              >
+                <circle
+                  cx="18" cy="18" r="16"
+                  fill="none"
+                  stroke={timeLeft <= 10 ? '#ef4444' : '#fbbf24'}
+                  strokeWidth="2"
+                  strokeDasharray={`${2 * Math.PI * 16}`}
+                  strokeDashoffset={`${2 * Math.PI * 16 * (1 - timeLeft / ACTION_TIMEOUT_SEC)}`}
+                  strokeLinecap="round"
+                  style={{ transition: 'stroke-dashoffset 0.25s linear' }}
+                />
+              </svg>
+            )}
+            <div
+              className="player-avatar"
+              style={{ background: getAvatarColor(player.name) }}
+            >
+              {player.name.slice(0, 1).toUpperCase()}
+            </div>
           </div>
 
           <div className="text-left min-w-0">

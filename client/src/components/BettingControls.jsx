@@ -2,15 +2,32 @@ import { useState, useEffect } from 'react';
 import { socket } from '../socket';
 import { playChip, playFold, playRaise } from '../sounds';
 
+const ACTION_TIMEOUT_SEC = 30;
+
 export default function BettingControls({ gameState, playerId }) {
   const player = gameState.players.find(p => p.id === playerId);
   const isMyTurn = gameState.currentActorId === playerId;
 
   const [raiseStr, setRaiseStr] = useState(String(gameState.minRaise));
+  const [timeLeft, setTimeLeft] = useState(null);
 
   useEffect(() => {
     setRaiseStr(String(gameState.minRaise));
   }, [gameState.minRaise, gameState.currentActorId]);
+
+  useEffect(() => {
+    if (!isMyTurn || !gameState.actionDeadline) {
+      setTimeLeft(null);
+      return;
+    }
+    const update = () => {
+      const remaining = Math.max(0, gameState.actionDeadline - Date.now());
+      setTimeLeft(Math.ceil(remaining / 1000));
+    };
+    update();
+    const interval = setInterval(update, 250);
+    return () => clearInterval(interval);
+  }, [isMyTurn, gameState.actionDeadline]);
 
   if (!isMyTurn || !['pre-flop', 'flop', 'turn', 'river'].includes(gameState.phase)) {
     return (
@@ -106,6 +123,32 @@ export default function BettingControls({ gameState, playerId }) {
           <div className="flex justify-between text-xs text-gray-600 mt-1 px-1">
             <span>최소 {gameState.minRaise?.toLocaleString()}</span>
             <span>올인 {maxRaise?.toLocaleString()}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Timer bar */}
+      {timeLeft !== null && (
+        <div className="max-w-lg mx-auto mb-2">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs text-gray-500">남은 시간</span>
+            <span
+              className="text-xs font-bold tabular-nums"
+              style={{ color: timeLeft <= 10 ? '#f87171' : '#fbbf24' }}
+            >
+              {timeLeft}초
+            </span>
+          </div>
+          <div className="h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
+            <div
+              className="h-full rounded-full transition-all duration-250"
+              style={{
+                width: `${(timeLeft / ACTION_TIMEOUT_SEC) * 100}%`,
+                background: timeLeft <= 10
+                  ? 'linear-gradient(90deg, #ef4444, #f87171)'
+                  : 'linear-gradient(90deg, #d97706, #fbbf24)',
+              }}
+            />
           </div>
         </div>
       )}
