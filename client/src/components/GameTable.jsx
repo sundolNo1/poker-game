@@ -23,13 +23,14 @@ const PHASE_COLORS = {
   showdown: '#fbbf24',
 };
 
+// 타원 테두리를 따라 9시~3시 방향으로 배치, 커뮤니티 카드 중앙과 겹치지 않도록 좌우 끝에 고정
 const SEAT_POSITIONS = [
-  'bottom-left-12 left-6',
-  'top-32 left-6',
-  'top-4 left-1/4 -translate-x-1/4',
-  'top-4 right-1/4 translate-x-1/4',
-  'top-32 right-6',
-  'bottom-12 right-6',
+  'bottom-8 left-6',
+  'top-1/2 left-2 -translate-y-1/2',
+  'top-4 left-6',
+  'top-4 right-6',
+  'top-1/2 right-2 -translate-y-1/2',
+  'bottom-8 right-6',
 ];
 
 export default function GameTable({ gameState, playerId, roomId }) {
@@ -146,15 +147,15 @@ export default function GameTable({ gameState, playerId, roomId }) {
           className="poker-table relative rounded-[50%] w-full max-w-3xl"
           style={{ aspectRatio: '2/1', minHeight: '280px' }}
         >
-          {/* Other players */}
+          {/* Other players — z-10으로 커뮤니티 카드보다 위에 렌더링 */}
           {others.map((player, i) => (
-            <div key={player.id} className={`absolute ${SEAT_POSITIONS[i]}`}>
+            <div key={player.id} className={`absolute ${SEAT_POSITIONS[i]}`} style={{ zIndex: 10 }}>
               <PlayerSeat player={player} isMe={false} phase={gameState.phase} actionDeadline={player.isCurrentActor ? gameState.actionDeadline : null} />
             </div>
           ))}
 
-          {/* Center */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 pointer-events-none">
+          {/* Center — 커뮤니티 카드 (z-0, 플레이어보다 아래) */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 pointer-events-none" style={{ zIndex: 0 }}>
             {/* Community cards */}
             <div className="flex gap-2">
               {[0, 1, 2, 3, 4].map(i => (
