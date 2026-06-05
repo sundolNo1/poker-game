@@ -68,23 +68,38 @@ export default function PlayerSeat({ player, isMe, phase, actionDeadline }) {
       <div className={seatClass}>
         <div className="flex items-center gap-2 justify-center">
           {/* Avatar with timer ring */}
-          <div className="relative">
+          <div className="relative" style={{ width: 36, height: 36, flexShrink: 0 }}>
             {timeLeft !== null && (
               <svg
-                className="absolute -inset-1"
-                width="36" height="36"
-                viewBox="0 0 36 36"
-                style={{ transform: 'rotate(-90deg)' }}
+                width="60" height="60"
+                viewBox="0 0 60 60"
+                style={{
+                  position: 'absolute',
+                  top: '50%', left: '50%',
+                  transform: 'translate(-50%, -50%) rotate(-90deg)',
+                  pointerEvents: 'none',
+                }}
               >
+                {/* 배경 트랙 */}
                 <circle
-                  cx="18" cy="18" r="16"
+                  cx="30" cy="30" r="26"
+                  fill="none"
+                  stroke="rgba(255,255,255,0.08)"
+                  strokeWidth="4"
+                />
+                {/* 진행 링 */}
+                <circle
+                  cx="30" cy="30" r="26"
                   fill="none"
                   stroke={timeLeft <= 10 ? '#ef4444' : '#fbbf24'}
-                  strokeWidth="2"
-                  strokeDasharray={`${2 * Math.PI * 16}`}
-                  strokeDashoffset={`${2 * Math.PI * 16 * (1 - timeLeft / ACTION_TIMEOUT_SEC)}`}
+                  strokeWidth="4"
                   strokeLinecap="round"
-                  style={{ transition: 'stroke-dashoffset 0.25s linear' }}
+                  strokeDasharray={`${2 * Math.PI * 26}`}
+                  strokeDashoffset={`${2 * Math.PI * 26 * (1 - timeLeft / ACTION_TIMEOUT_SEC)}`}
+                  style={{
+                    transition: 'stroke-dashoffset 0.25s linear, stroke 0.3s',
+                    filter: `drop-shadow(0 0 5px ${timeLeft <= 10 ? '#ef4444' : '#fbbf24'})`,
+                  }}
                 />
               </svg>
             )}
