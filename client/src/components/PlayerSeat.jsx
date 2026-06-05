@@ -25,7 +25,20 @@ function ChipCount({ chips }) {
   return <span className="text-yellow-300 text-xs">{chips.toLocaleString()}</span>;
 }
 
-export default function PlayerSeat({ player, isMe, phase, actionDeadline }) {
+const HAND_COLORS = [
+  { bg: 'rgba(107,114,128,0.2)',  border: 'rgba(107,114,128,0.4)',  text: '#9ca3af' }, // 하이카드
+  { bg: 'rgba(59,130,246,0.15)', border: 'rgba(59,130,246,0.4)',  text: '#93c5fd' }, // 원페어
+  { bg: 'rgba(99,102,241,0.15)', border: 'rgba(99,102,241,0.4)',  text: '#a5b4fc' }, // 투페어
+  { bg: 'rgba(16,185,129,0.15)', border: 'rgba(16,185,129,0.4)',  text: '#6ee7b7' }, // 트리플
+  { bg: 'rgba(20,184,166,0.15)', border: 'rgba(20,184,166,0.4)',  text: '#5eead4' }, // 스트레이트
+  { bg: 'rgba(14,165,233,0.15)', border: 'rgba(14,165,233,0.4)',  text: '#7dd3fc' }, // 플러시
+  { bg: 'rgba(139,92,246,0.2)',  border: 'rgba(139,92,246,0.5)',  text: '#c4b5fd' }, // 풀하우스
+  { bg: 'rgba(245,158,11,0.2)',  border: 'rgba(245,158,11,0.5)',  text: '#fcd34d' }, // 포카드
+  { bg: 'rgba(239,68,68,0.2)',   border: 'rgba(239,68,68,0.5)',   text: '#fca5a5' }, // 스트레이트 플러시
+  { bg: 'rgba(251,191,36,0.25)', border: 'rgba(251,191,36,0.7)',  text: '#fbbf24' }, // 로열 플러시
+];
+
+export default function PlayerSeat({ player, isMe, phase, actionDeadline, handStrength }) {
   const [timeLeft, setTimeLeft] = useState(null);
 
   useEffect(() => {
@@ -143,6 +156,22 @@ export default function PlayerSeat({ player, isMe, phase, actionDeadline }) {
         {player.totalBet > 0 && !['waiting', 'showdown'].includes(phase) && (
           <div className="chip-badge text-yellow-300 mt-1.5 text-center">
             베팅 {player.totalBet.toLocaleString()}
+          </div>
+        )}
+
+        {/* Hand strength badge (내 패만, 플롭 이후) */}
+        {isMe && handStrength && !player.folded && (
+          <div
+            className="mt-1.5 px-2 py-0.5 rounded-full text-center font-bold"
+            style={{
+              fontSize: 10,
+              background: HAND_COLORS[handStrength.rank]?.bg,
+              border: `1px solid ${HAND_COLORS[handStrength.rank]?.border}`,
+              color: HAND_COLORS[handStrength.rank]?.text,
+              letterSpacing: '0.03em',
+            }}
+          >
+            {handStrength.name}
           </div>
         )}
       </div>

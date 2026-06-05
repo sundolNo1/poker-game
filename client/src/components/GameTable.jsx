@@ -216,7 +216,7 @@ export default function GameTable({ gameState, playerId, roomId }) {
 
         {/* 내 시트 */}
         <div>
-          <PlayerSeat player={myPlayer} isMe phase={gameState.phase} />
+          <PlayerSeat player={myPlayer} isMe phase={gameState.phase} handStrength={gameState.myHandStrength} />
         </div>
       </div>
 

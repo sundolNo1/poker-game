@@ -32,7 +32,7 @@ class GameRoom {
     if (this.players.length >= 6) return { error: '방이 꽉 찼습니다 (최대 6명)' };
     if (this.phase !== 'waiting') return { error: '게임이 진행 중입니다' };
     if (this.players.find(p => p.id === id)) return { error: '이미 참가했습니다' };
-    this.players.push({ id, name, chips: STARTING_CHIPS, hand: [], totalBet: 0, folded: false, allIn: false, isBot: false });
+    this.players.push({ id, name, chips: STARTING_CHIPS, hand: [], totalBet: 0, contributed: 0, folded: false, allIn: false, isBot: false });
     return { success: true };
   }
 
@@ -42,7 +42,7 @@ class GameRoom {
     const usedNames = this.players.map(p => p.name);
     const name = BOT_NAMES.find(n => !usedNames.includes(n)) || `Bot${this.players.length}`;
     const botId = `bot_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-    this.players.push({ id: botId, name, chips: STARTING_CHIPS, hand: [], totalBet: 0, folded: false, allIn: false, isBot: true });
+    this.players.push({ id: botId, name, chips: STARTING_CHIPS, hand: [], totalBet: 0, contributed: 0, folded: false, allIn: false, isBot: true });
     return { success: true };
   }
 
@@ -74,6 +74,7 @@ class GameRoom {
     for (const p of this.players) {
       p.hand = [];
       p.totalBet = 0;
+      p.contributed = 0;
       p.folded = false;
       p.allIn = false;
     }
@@ -103,6 +104,7 @@ class GameRoom {
     const actual = Math.min(amount, p.chips);
     p.chips -= actual;
     p.totalBet += actual;
+    p.contributed += actual;
     this.pot += actual;
     if (p.chips === 0) p.allIn = true;
   }
@@ -154,7 +156,6 @@ class GameRoom {
     const actor = this.players.find(p => p.id === actorId);
 
     if (actor?.isBot) {
-      // 봇은 0.8~2초 딜레이 후 자동 행동 (생각하는 것처럼 보이게)
       this.actionDeadline = null;
       const delay = 800 + Math.random() * 1200;
       this.actionTimer = setTimeout(() => {
@@ -162,7 +163,6 @@ class GameRoom {
         this.onBroadcast?.();
       }, delay);
     } else {
-      // 사람 플레이어 — 30초 타임아웃
       this.actionDeadline = Date.now() + ACTION_TIMEOUT_MS;
       this.actionTimer = setTimeout(() => {
         const player = this.players.find(p => p.id === actorId);
@@ -221,6 +221,7 @@ class GameRoom {
         const callAmt = Math.min(this.currentBet - player.totalBet, player.chips);
         player.chips -= callAmt;
         player.totalBet += callAmt;
+        player.contributed += callAmt;
         this.pot += callAmt;
         if (player.chips === 0) player.allIn = true;
         break;
@@ -233,6 +234,7 @@ class GameRoom {
         const actual = Math.min(totalNeeded, player.chips);
         player.chips -= actual;
         player.totalBet += actual;
+        player.contributed += actual;
         this.pot += actual;
         this.minRaise = Math.max(player.totalBet - this.currentBet, this.bigBlind);
         this.currentBet = player.totalBet;
@@ -296,26 +298,85 @@ class GameRoom {
     this._skipIfNoActors();
   }
 
+  // 올인 기여액 기준으로 사이드 팟 분리
+  _calculateSidePots() {
+    // 올인 플레이어의 기여액이 팟 경계를 결정
+    const allInLevels = this.players
+      .filter(p => p.allIn && p.contributed > 0)
+      .map(p => p.contributed);
+
+    const maxContrib = Math.max(0, ...this.players.map(p => p.contributed));
+    const levels = [...new Set([...allInLevels, maxContrib])].sort((a, b) => a - b);
+
+    if (levels.length === 0) {
+      return [{ amount: this.pot, eligible: this.players.filter(p => !p.folded) }];
+    }
+
+    const pots = [];
+    let prevLevel = 0;
+
+    for (const level of levels) {
+      let potAmount = 0;
+      for (const p of this.players) {
+        potAmount += Math.max(0, Math.min(p.contributed, level) - prevLevel);
+      }
+
+      // 이 팟을 받을 수 있는 플레이어: 폴드 안 했고 해당 레벨만큼 기여한 플레이어
+      const eligible = this.players.filter(p => !p.folded && p.contributed >= level);
+
+      if (potAmount > 0) {
+        if (eligible.length > 0) {
+          pots.push({ amount: potAmount, eligible });
+        } else if (pots.length > 0) {
+          // 이 레벨의 수혜 가능자가 없으면 직전 팟에 합산
+          pots[pots.length - 1].amount += potAmount;
+        }
+      }
+
+      prevLevel = level;
+    }
+
+    return pots.length > 0 ? pots : [{ amount: this.pot, eligible: this.players.filter(p => !p.folded) }];
+  }
+
   _showdown() {
     this._clearActionTimer();
     this.phase = 'showdown';
-    const active = this.players.filter(p => !p.folded);
 
-    const results = active.map(p => ({
-      player: p,
-      handResult: getBestHand([...p.hand, ...this.communityCards]),
-    })).sort((a, b) => compareHands(b.handResult, a.handResult));
+    const sidePots = this._calculateSidePots();
+    const winnerMap = new Map(); // playerId → 누적 결과
 
-    const best = results[0].handResult;
-    const tied = results.filter(r => compareHands(r.handResult, best) === 0);
-    const share = Math.floor(this.pot / tied.length);
-    const rem = this.pot - share * tied.length;
+    for (const { amount, eligible } of sidePots) {
+      if (eligible.length === 0) continue;
 
-    this.winners = tied.map((w, i) => {
-      const winAmt = share + (i === 0 ? rem : 0);
-      w.player.chips += winAmt;
-      return { playerId: w.player.id, playerName: w.player.name, hand: w.handResult, pot: winAmt };
-    });
+      const results = eligible.map(p => ({
+        player: p,
+        handResult: getBestHand([...p.hand, ...this.communityCards]),
+      })).sort((a, b) => compareHands(b.handResult, a.handResult));
+
+      const best = results[0].handResult;
+      const tied = results.filter(r => compareHands(r.handResult, best) === 0);
+      const share = Math.floor(amount / tied.length);
+      const rem = amount - share * tied.length;
+
+      tied.forEach((w, i) => {
+        const winAmt = share + (i === 0 ? rem : 0);
+        w.player.chips += winAmt;
+
+        if (winnerMap.has(w.player.id)) {
+          winnerMap.get(w.player.id).pot += winAmt;
+        } else {
+          winnerMap.set(w.player.id, {
+            playerId: w.player.id,
+            playerName: w.player.name,
+            hand: w.handResult,
+            pot: winAmt,
+          });
+        }
+      });
+    }
+
+    this.winners = [...winnerMap.values()];
     this.pot = 0;
   }
 
@@ -325,12 +386,19 @@ class GameRoom {
     this.phase = 'waiting';
   }
 
-  // 첫 번째 사람 플레이어 ID (방장 역할)
   _hostId() {
     return this.players.find(p => !p.isBot)?.id || null;
   }
 
   getState(forPlayerId) {
+    // 플롭 이후 내 핸드 강도 계산
+    const myHandStrength = (() => {
+      if (!['flop', 'turn', 'river'].includes(this.phase)) return null;
+      const me = this.players.find(p => p.id === forPlayerId);
+      if (!me || me.folded || me.hand.length < 2) return null;
+      return getBestHand([...me.hand, ...this.communityCards]);
+    })();
+
     return {
       roomId: this.roomId,
       phase: this.phase,
@@ -345,6 +413,7 @@ class GameRoom {
       winners: this.winners,
       actionDeadline: this.actionDeadline,
       hostId: this._hostId(),
+      myHandStrength,
       players: this.players.map((p, i) => ({
         id: p.id,
         name: p.name,
