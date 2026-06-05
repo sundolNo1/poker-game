@@ -79,14 +79,7 @@ export default function BettingControls({ gameState, playerId }) {
               {presets.map(p => (
                 <button
                   key={p.label}
-                  className="px-3 py-1 rounded text-xs font-semibold transition-all duration-150"
-                  style={{
-                    background: 'rgba(255,255,255,0.06)',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    color: '#9ca3af',
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(251,191,36,0.15)'; e.currentTarget.style.color = '#fbbf24'; e.currentTarget.style.borderColor = 'rgba(251,191,36,0.4)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = '#9ca3af'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
+                  className="preset-btn px-3 py-1 rounded text-xs font-semibold"
                   onClick={() => setRaiseStr(String(p.value))}
                 >
                   {p.label}
@@ -141,7 +134,7 @@ export default function BettingControls({ gameState, playerId }) {
           </div>
           <div className="h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
             <div
-              className="h-full rounded-full transition-all duration-250"
+              className="h-full rounded-full transition-all duration-[250ms]"
               style={{
                 width: `${(timeLeft / ACTION_TIMEOUT_SEC) * 100}%`,
                 background: timeLeft <= 10
