@@ -135,9 +135,12 @@ export default function GameTable({ gameState, playerId, roomId }) {
       {/* Table area */}
       <div className="flex-1 flex flex-col items-center justify-center p-3 gap-2">
 
-        {/* 상단 플레이어 행 (최대 3명) */}
+        {/* 상단 플레이어 행 (최대 3명) — 타원 너비와 정렬 */}
         {others.slice(0, 3).length > 0 && (
-          <div className="flex justify-around items-end w-full max-w-3xl gap-2 px-16">
+          <div
+            className="flex justify-around items-end gap-4"
+            style={{ width: '52%', minWidth: 260, maxWidth: 480 }}
+          >
             {others.slice(0, 3).map(player => (
               <PlayerSeat
                 key={player.id}
@@ -150,11 +153,12 @@ export default function GameTable({ gameState, playerId, roomId }) {
           </div>
         )}
 
-        {/* 중간 행: 좌측 플레이어 + 타원(카드 전용) + 우측 플레이어 */}
-        <div className="flex items-center w-full max-w-3xl gap-3">
+        {/* 중간 행: 좌측 + 타원(카드 전용) + 우측 */}
+        {/* gap-8(32px) > box-shadow(28px) → 플레이어 영역 침범 없음 */}
+        <div className="flex items-center w-full max-w-4xl gap-8">
 
-          {/* 좌측 플레이어 (4번째) */}
-          <div className="flex-shrink-0 flex justify-end" style={{ width: 140 }}>
+          {/* 좌측 플레이어 — flex-1로 공간 확보 후 타원 반대쪽 정렬 */}
+          <div className="flex-1 flex justify-end">
             {others[3] && (
               <PlayerSeat
                 player={others[3]}
@@ -165,10 +169,10 @@ export default function GameTable({ gameState, playerId, roomId }) {
             )}
           </div>
 
-          {/* 타원 — 커뮤니티 카드 + 팟만 */}
+          {/* 타원 — 고정 너비(52%)로 축소, 커뮤니티 카드 + 팟 전용 */}
           <div
-            className="poker-table flex-1 relative rounded-[50%]"
-            style={{ aspectRatio: '2/1', minHeight: '180px' }}
+            className="poker-table flex-shrink-0 relative rounded-[50%]"
+            style={{ width: '52%', maxWidth: 480, aspectRatio: '2/1', minHeight: '160px' }}
           >
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 pointer-events-none">
               <div className="flex gap-2">
@@ -197,8 +201,8 @@ export default function GameTable({ gameState, playerId, roomId }) {
             </div>
           </div>
 
-          {/* 우측 플레이어 (5번째) */}
-          <div className="flex-shrink-0" style={{ width: 140 }}>
+          {/* 우측 플레이어 */}
+          <div className="flex-1 flex justify-start">
             {others[4] && (
               <PlayerSeat
                 player={others[4]}
