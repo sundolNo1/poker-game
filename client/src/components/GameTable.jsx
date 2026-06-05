@@ -23,15 +23,6 @@ const PHASE_COLORS = {
   showdown: '#fbbf24',
 };
 
-// 타원 테두리를 따라 9시~3시 방향으로 배치, 커뮤니티 카드 중앙과 겹치지 않도록 좌우 끝에 고정
-const SEAT_POSITIONS = [
-  'bottom-8 left-6',
-  'top-1/2 left-2 -translate-y-1/2',
-  'top-4 left-6',
-  'top-4 right-6',
-  'top-1/2 right-2 -translate-y-1/2',
-  'bottom-8 right-6',
-];
 
 export default function GameTable({ gameState, playerId, roomId }) {
   const [copied, setCopied] = useState(false);
@@ -142,50 +133,84 @@ export default function GameTable({ gameState, playerId, roomId }) {
       </div>
 
       {/* Table area */}
-      <div className="flex-1 flex flex-col items-center justify-center p-4 gap-4">
-        <div
-          className="poker-table relative rounded-[50%] w-full max-w-3xl"
-          style={{ aspectRatio: '2/1', minHeight: '280px' }}
-        >
-          {/* Other players — z-10으로 커뮤니티 카드보다 위에 렌더링 */}
-          {others.map((player, i) => (
-            <div key={player.id} className={`absolute ${SEAT_POSITIONS[i]}`} style={{ zIndex: 10 }}>
-              <PlayerSeat player={player} isMe={false} phase={gameState.phase} actionDeadline={player.isCurrentActor ? gameState.actionDeadline : null} />
-            </div>
-          ))}
+      <div className="flex-1 flex flex-col items-center justify-center p-3 gap-2">
 
-          {/* Center — 커뮤니티 카드 (z-0, 플레이어보다 아래) */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 pointer-events-none" style={{ zIndex: 0 }}>
-            {/* Community cards */}
-            <div className="flex gap-2">
-              {[0, 1, 2, 3, 4].map(i => (
-                <Card
-                  key={i}
-                  card={gameState.communityCards[i] || null}
-                  hidden={!gameState.communityCards[i]}
-                  large
-                />
-              ))}
-            </div>
+        {/* 상단 플레이어 행 (최대 3명) */}
+        {others.slice(0, 3).length > 0 && (
+          <div className="flex justify-around items-end w-full max-w-3xl gap-2 px-16">
+            {others.slice(0, 3).map(player => (
+              <PlayerSeat
+                key={player.id}
+                player={player}
+                isMe={false}
+                phase={gameState.phase}
+                actionDeadline={player.isCurrentActor ? gameState.actionDeadline : null}
+              />
+            ))}
+          </div>
+        )}
 
-            {/* Pot */}
-            {gameState.pot > 0 && (
-              <div
-                className="px-4 py-1 rounded-full text-sm font-bold"
-                style={{
-                  background: 'rgba(0,0,0,0.7)',
-                  border: '1px solid rgba(251,191,36,0.4)',
-                  color: '#fbbf24',
-                  boxShadow: '0 0 20px rgba(251,191,36,0.2)',
-                }}
-              >
-                팟 {gameState.pot.toLocaleString()}
+        {/* 중간 행: 좌측 플레이어 + 타원(카드 전용) + 우측 플레이어 */}
+        <div className="flex items-center w-full max-w-3xl gap-3">
+
+          {/* 좌측 플레이어 (4번째) */}
+          <div className="flex-shrink-0 flex justify-end" style={{ width: 140 }}>
+            {others[3] && (
+              <PlayerSeat
+                player={others[3]}
+                isMe={false}
+                phase={gameState.phase}
+                actionDeadline={others[3].isCurrentActor ? gameState.actionDeadline : null}
+              />
+            )}
+          </div>
+
+          {/* 타원 — 커뮤니티 카드 + 팟만 */}
+          <div
+            className="poker-table flex-1 relative rounded-[50%]"
+            style={{ aspectRatio: '2/1', minHeight: '180px' }}
+          >
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 pointer-events-none">
+              <div className="flex gap-2">
+                {[0, 1, 2, 3, 4].map(i => (
+                  <Card
+                    key={i}
+                    card={gameState.communityCards[i] || null}
+                    hidden={!gameState.communityCards[i]}
+                    large
+                  />
+                ))}
               </div>
+              {gameState.pot > 0 && (
+                <div
+                  className="px-4 py-1 rounded-full text-sm font-bold"
+                  style={{
+                    background: 'rgba(0,0,0,0.7)',
+                    border: '1px solid rgba(251,191,36,0.4)',
+                    color: '#fbbf24',
+                    boxShadow: '0 0 20px rgba(251,191,36,0.2)',
+                  }}
+                >
+                  팟 {gameState.pot.toLocaleString()}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* 우측 플레이어 (5번째) */}
+          <div className="flex-shrink-0" style={{ width: 140 }}>
+            {others[4] && (
+              <PlayerSeat
+                player={others[4]}
+                isMe={false}
+                phase={gameState.phase}
+                actionDeadline={others[4].isCurrentActor ? gameState.actionDeadline : null}
+              />
             )}
           </div>
         </div>
 
-        {/* My seat */}
+        {/* 내 시트 */}
         <div>
           <PlayerSeat player={myPlayer} isMe phase={gameState.phase} />
         </div>
