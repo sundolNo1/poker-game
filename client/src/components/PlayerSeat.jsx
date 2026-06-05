@@ -115,6 +115,14 @@ export default function PlayerSeat({ player, isMe, phase, actionDeadline }) {
             {/* Name row */}
             <div className="flex items-center gap-1.5">
               {player.isDealer && <span className="dealer-btn">D</span>}
+              {player.isBot && (
+                <span style={{
+                  fontSize: 8, fontWeight: 800, letterSpacing: '0.06em',
+                  color: '#a78bfa', background: 'rgba(139,92,246,0.18)',
+                  border: '1px solid rgba(139,92,246,0.4)',
+                  borderRadius: 3, padding: '1px 3px',
+                }}>BOT</span>
+              )}
               <span className="font-bold text-xs truncate max-w-[70px] leading-tight">
                 {player.name}{isMe ? <span className="text-green-400 ml-1">(나)</span> : ''}
               </span>

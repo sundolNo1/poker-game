@@ -66,6 +66,15 @@ io.on('connection', (socket) => {
     broadcastState(room);
   });
 
+  socket.on('add-bot', () => {
+    const room = rooms.get(currentRoomId);
+    if (!room) return;
+    if (room._hostId() !== socket.id) { socket.emit('error', '방장만 봇을 추가할 수 있습니다'); return; }
+    const res = room.addBot();
+    if (res.error) { socket.emit('error', res.error); return; }
+    broadcastState(room);
+  });
+
   socket.on('next-round', () => {
     const room = rooms.get(currentRoomId);
     if (!room || room.phase !== 'showdown') return;

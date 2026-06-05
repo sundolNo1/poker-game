@@ -65,8 +65,9 @@ export default function GameTable({ gameState, playerId, roomId }) {
 
   const myPlayer = gameState.players.find(p => p.id === playerId);
   const others = gameState.players.filter(p => p.id !== playerId);
-  const isHost = gameState.players[0]?.id === playerId;
+  const isHost = gameState.hostId === playerId;
   const canStart = isHost && gameState.phase === 'waiting' && gameState.players.length >= 2;
+  const canAddBot = isHost && gameState.phase === 'waiting' && gameState.players.length < 6;
   const phaseColor = PHASE_COLORS[gameState.phase] || '#9ca3af';
 
   return (
@@ -250,17 +251,35 @@ export default function GameTable({ gameState, playerId, roomId }) {
             {gameState.players.map(p => (
               <span
                 key={p.id}
-                className="px-3 py-1 rounded-full text-xs font-medium"
+                className="px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1"
                 style={{
-                  background: p.id === playerId ? 'rgba(74,222,128,0.1)' : 'rgba(255,255,255,0.05)',
-                  border: `1px solid ${p.id === playerId ? 'rgba(74,222,128,0.3)' : 'rgba(255,255,255,0.1)'}`,
-                  color: p.id === playerId ? '#4ade80' : '#9ca3af',
+                  background: p.id === playerId ? 'rgba(74,222,128,0.1)' : p.isBot ? 'rgba(139,92,246,0.1)' : 'rgba(255,255,255,0.05)',
+                  border: `1px solid ${p.id === playerId ? 'rgba(74,222,128,0.3)' : p.isBot ? 'rgba(139,92,246,0.35)' : 'rgba(255,255,255,0.1)'}`,
+                  color: p.id === playerId ? '#4ade80' : p.isBot ? '#a78bfa' : '#9ca3af',
                 }}
               >
+                {p.isBot && <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: '0.05em' }}>BOT</span>}
                 {p.id === playerId ? `${p.name} (나)` : p.name}
               </span>
             ))}
           </div>
+
+          {/* 봇 추가 버튼 */}
+          {canAddBot && (
+            <div className="flex justify-center mb-4">
+              <button
+                onClick={() => socket.emit('add-bot')}
+                className="px-4 py-1.5 rounded-lg text-xs font-semibold transition-all active:scale-95"
+                style={{
+                  background: 'rgba(139,92,246,0.12)',
+                  border: '1px solid rgba(139,92,246,0.35)',
+                  color: '#a78bfa',
+                }}
+              >
+                + 봇 추가
+              </button>
+            </div>
+          )}
 
           {canStart ? (
             <div className="text-center">

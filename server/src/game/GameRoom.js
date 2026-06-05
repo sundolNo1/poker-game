@@ -1,10 +1,12 @@
 const { createDeck, shuffle } = require('./deck');
 const { getBestHand, compareHands } = require('./handEvaluator');
+const BotAI = require('./BotAI');
 
 const DEFAULT_SMALL_BLIND = 1000;
 const DEFAULT_BIG_BLIND = 2000;
 const STARTING_CHIPS = 1000000;
 const ACTION_TIMEOUT_MS = 30000;
+const BOT_NAMES = ['Aria', 'Blaze', 'Cipher', 'Drake', 'Echo', 'Frost'];
 
 class GameRoom {
   constructor(roomId, onBroadcast) {
@@ -30,7 +32,17 @@ class GameRoom {
     if (this.players.length >= 6) return { error: '방이 꽉 찼습니다 (최대 6명)' };
     if (this.phase !== 'waiting') return { error: '게임이 진행 중입니다' };
     if (this.players.find(p => p.id === id)) return { error: '이미 참가했습니다' };
-    this.players.push({ id, name, chips: STARTING_CHIPS, hand: [], totalBet: 0, folded: false, allIn: false });
+    this.players.push({ id, name, chips: STARTING_CHIPS, hand: [], totalBet: 0, folded: false, allIn: false, isBot: false });
+    return { success: true };
+  }
+
+  addBot() {
+    if (this.players.length >= 6) return { error: '방이 꽉 찼습니다 (최대 6명)' };
+    if (this.phase !== 'waiting') return { error: '게임이 진행 중입니다' };
+    const usedNames = this.players.map(p => p.name);
+    const name = BOT_NAMES.find(n => !usedNames.includes(n)) || `Bot${this.players.length}`;
+    const botId = `bot_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    this.players.push({ id: botId, name, chips: STARTING_CHIPS, hand: [], totalBet: 0, folded: false, allIn: false, isBot: true });
     return { success: true };
   }
 
@@ -120,7 +132,6 @@ class GameRoom {
     }
   }
 
-  // 레이즈 후 재행동 순서를 레이저 다음부터 시계방향으로 올바르게 재구성
   _reorderAfterRaise(raiserId) {
     const n = this.players.length;
     const raiserIdx = this.players.findIndex(p => p.id === raiserId);
@@ -138,15 +149,29 @@ class GameRoom {
       this.actionDeadline = null;
       return;
     }
-    this.actionDeadline = Date.now() + ACTION_TIMEOUT_MS;
-    this.actionTimer = setTimeout(() => {
-      const actorId = this.actingOrder[0];
-      const player = this.players.find(p => p.id === actorId);
-      if (!player || player.folded || player.allIn) return;
-      const canCheck = player.totalBet >= this.currentBet;
-      this.playerAction(actorId, canCheck ? 'check' : 'fold', 0);
-      this.onBroadcast?.();
-    }, ACTION_TIMEOUT_MS);
+
+    const actorId = this.actingOrder[0];
+    const actor = this.players.find(p => p.id === actorId);
+
+    if (actor?.isBot) {
+      // 봇은 0.8~2초 딜레이 후 자동 행동 (생각하는 것처럼 보이게)
+      this.actionDeadline = null;
+      const delay = 800 + Math.random() * 1200;
+      this.actionTimer = setTimeout(() => {
+        this._executeBotAction(actorId);
+        this.onBroadcast?.();
+      }, delay);
+    } else {
+      // 사람 플레이어 — 30초 타임아웃
+      this.actionDeadline = Date.now() + ACTION_TIMEOUT_MS;
+      this.actionTimer = setTimeout(() => {
+        const player = this.players.find(p => p.id === actorId);
+        if (!player || player.folded || player.allIn) return;
+        const canCheck = player.totalBet >= this.currentBet;
+        this.playerAction(actorId, canCheck ? 'check' : 'fold', 0);
+        this.onBroadcast?.();
+      }, ACTION_TIMEOUT_MS);
+    }
   }
 
   _clearActionTimer() {
@@ -155,6 +180,21 @@ class GameRoom {
       this.actionTimer = null;
     }
     this.actionDeadline = null;
+  }
+
+  _executeBotAction(botId) {
+    const bot = this.players.find(p => p.id === botId);
+    if (!bot || bot.folded || bot.allIn) return;
+    const callAmount = Math.min(this.currentBet - bot.totalBet, bot.chips);
+    const { action, amount } = BotAI.decide({
+      hand: bot.hand,
+      communityCards: this.communityCards,
+      callAmount,
+      pot: this.pot,
+      chips: bot.chips,
+      minRaise: this.minRaise,
+    });
+    this.playerAction(botId, action, amount || 0);
   }
 
   playerAction(playerId, action, amount) {
@@ -197,7 +237,6 @@ class GameRoom {
         this.minRaise = Math.max(player.totalBet - this.currentBet, this.bigBlind);
         this.currentBet = player.totalBet;
         if (player.chips === 0) player.allIn = true;
-        // 시계방향으로 올바르게 재행동 순서 구성 (BB 옵션 포함)
         this._reorderAfterRaise(playerId);
         break;
       }
@@ -286,6 +325,11 @@ class GameRoom {
     this.phase = 'waiting';
   }
 
+  // 첫 번째 사람 플레이어 ID (방장 역할)
+  _hostId() {
+    return this.players.find(p => !p.isBot)?.id || null;
+  }
+
   getState(forPlayerId) {
     return {
       roomId: this.roomId,
@@ -300,6 +344,7 @@ class GameRoom {
       dealerIndex: this.dealerIndex,
       winners: this.winners,
       actionDeadline: this.actionDeadline,
+      hostId: this._hostId(),
       players: this.players.map((p, i) => ({
         id: p.id,
         name: p.name,
@@ -307,6 +352,7 @@ class GameRoom {
         totalBet: p.totalBet,
         folded: p.folded,
         allIn: p.allIn,
+        isBot: p.isBot,
         isDealer: i === this.dealerIndex,
         isCurrentActor: this.actingOrder[0] === p.id,
         hand: (p.id === forPlayerId || this.phase === 'showdown')
